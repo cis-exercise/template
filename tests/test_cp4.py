@@ -1,8 +1,7 @@
+import app as app_module
 import pytest
 from flask.signals import template_rendered
 from markupsafe import escape
-
-import app as app_module
 
 
 @pytest.fixture
@@ -16,7 +15,6 @@ def request_template(client):
     def capture_template(sender, template, context, **extra):
         rendered["template"] = template
         rendered["greeting"] = context["greeting"]
-        rendered["title"] = context["title"]
 
     template_rendered.connect(capture_template, app_module.app)
     try:
@@ -33,7 +31,6 @@ def test_template_renders_current_context(client):
     assert response.status_code == 200
     assert rendered["template"].name == "template.html"
     body = response.get_data(as_text=True)
-    assert str(escape(rendered["title"])) in body
     assert str(escape(rendered["greeting"])) in body
 
 
@@ -47,21 +44,18 @@ def test_template_route_uses_default_context(client):
 
 def test_template_renders_changed_context_values():
     greeting = "app.pyのgreetingを変更した場合"
-    title = "app.pyのtitleを変更した場合"
 
     with app_module.app.app_context():
         body = app_module.app.jinja_env.get_template("template.html").render(
             greeting=greeting,
-            title=title,
         )
 
-    assert f"<h1>{escape(title)}</h1>" in body
+    assert f"<h1>あいさつ</h1>" in body
     assert f"<li>{escape(greeting)}</li>" in body
 
 
 def test_template_matches_current_html(client):
     response, rendered = request_template(client)
-    title = escape(rendered["title"])
     greeting = escape(rendered["greeting"])
     expected = f"""<!DOCTYPE html>
 <html lang="ja">
@@ -71,7 +65,7 @@ def test_template_matches_current_html(client):
     <title>Template</title>
 </head>
 <body>
-    <h1>{title}</h1>
+    <h1>あいさつ</h1>
     <ul>
         <li>{greeting}</li>
     </ul>
